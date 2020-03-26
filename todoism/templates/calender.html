@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8" name="viewport" content="width=device-width,initial-scale=1.0">
+    <title>{{ title }} | Schedule</title>
+	<link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
+    <link rel="shortcut icon" href="{{ url_for('static', filename='img/favicon.ico') }}">
+	<link href="static/fullcalendar/fullcalendar.min.css" rel="stylesheet">
+	<link href="static/fullcalendar/fullcalendar.print.min.css" rel="stylesheet" media="print">
+	<link href="static/fullcalendar/jquery-ui-1.10.4.custom.min.css" rel="stylesheet">
+	<link href="static/fullcalendar/bootstrap-datepicker.min.css" rel="stylesheet">
+	<link href="static/fullcalendar/jquery-ui.min.css" rel="stylesheet">
+	<link href="static/fullcalendar/ui-dialog.css" rel="stylesheet">
+	<link href="static/fullcalendar/wickedpicker.min.css" rel="stylesheet">
+	<script src="static/fullcalendar/jquery-1.10.2.js"></script>
+	<script src="static/fullcalendar/jquery.min.js"></script>
+	<script src="static/fullcalendar/jquery-ui.min.js"></script>
+	<script src="static/fullcalendar/moment.min.js"></script>
+	<script src="static/fullcalendar/fullcalendar.js"></script>
+	<script src="static/fullcalendar/jquery-ui-1.10.4.custom.min.js"></script>
+	<script src="static/fullcalendar/dialog-min.js"></script>
+	<script src="static/fullcalendar/bootstrap.min.js"></script>
+	<script src="static/fullcalendar/wickedpicker.min.js"></script>
+	<script src="static/fullcalendar/bootstrap-datepicker.min.js"></script>
+	<script src="static/fullcalendar/bootstrap-datepicker.zh-CN.min.js"></script>
+	<style>
+		body{
+			margin:40px 40px;
+			padding:0;
+			font-family: "Lucida Grande",Helvetica,Arial,Verdana,sans-serif;
+			font-size: 14px;
+		}
+		#calendar{
+			width:900px;
+			margin:0 auto;
+		}
+		.taxt{
+			width:440px;
+		}
+		.time{
+			width:100px;
+		}
+		.sear{
+			width:85px;
+		}
+		.select{
+			width:150px;
+		}
+		.textarea{
+			width:300px;
+		}
+		.check{
+			padding:8px;
+		}
+		.slidertext{
+			padding-top:40px;
+		}
+		.timepicki{
+			position:relative;
+			z-index: 999;
+		}
+		#edit{
+			position:relative;
+			width:300px;
+		}
+		#edittitle{
+			padding-bottom:10px;
+			font-weight: bold;
+			font-size: 18px;
+		}
+		#edittype{
+			position:absolute;
+			top:5px;
+			right:5px;
+			width:80px;
+		}
+	</style>
+	<script>
+	$(function(){
+		$("#calendar").fullCalendar({
+			theme: true,
+			customButtons:{
+				button1:{
+					text:"Add",
+					click:function(){
+						$(".datepicker").datepicker({
+							language:"zh-CN",
+							format:"yyyy-mm-dd",
+							todayHighlight:true,
+							autoclose:true,
+							weekStart:0
+						});
+						$(".timepicki").wickedpicker({
+							title:'',
+							showSeconds:true,
+							twentyFour:true
+						});
+						$("#end").click(function(){
+							if($("#end").prop("checked") == true){
+								$("#enddate").show();
+							}else{
+								$("#enddate").hide();
+							};
+						});
+						dialog({
+							title:"Add",
+							content:$("#dialog-form"),
+							okValue:"ok",
+							ok:function(){
+								var titledetail = $("#titledetail").val();
+								var startdate = $("#startdate").val();
+								var starttime = $("#starttime").val().split(" ").join("");
+								var enddate = $("#stopdate").val();
+								var endtime = $("#endtime").val().split(" ").join("");
+								if(titledetail){
+									$.ajax({
+										url:'{{url_for('todo.add')}}',
+				   						data:{id:$(this).attr("id"),title:titledetail,sdate:startdate,stime:starttime,edate:enddate,etime:endtime},
+				   						type:'POST',
+				   						dataType:'json',
+				  						success:function(data){
+				  							var start = $.fullCalendar.moment($("#startdate").val() + "T" + $("#starttime").val().split(" ").join(""));
+				  							var event = {id:$(this).attr("id"),title:titledetail,start:start};
+				  							$("#calendar").fullCalendar("renderEvent",event,true);
+				  						},
+				  						error:function(){
+				  							alert("Failed");
+				  						}
+
+									});
+								};
+							},
+							cancelValue:"close",
+							cancel:function(){
+								//$("#ui-datepicker-div").remove();
+							}
+						}).showModal();
+					}
+				},
+				button2:{
+					text:"search",
+					click:function(){
+						dialog({
+							title:"Search",
+							content:$("#search"),
+							okValue:"search",
+							ok:function(){
+								var search_content = $("#search_content").val();
+								if(search_content){
+									$.ajax({
+										url:'{{url_for('todo.search')}}',
+				   						data:{content:search_content},
+				   						type:'POST',
+				   						dataType:'json',
+				  						success:function(data){
+     										$('#calendar').fullCalendar('removeEvents');
+     										$.each(data,function(i,item){    
+       											var start = $.fullCalendar.moment(item['sdate']+ "T" + item['stime']);
+       											var event = {id:item['id'],title:item['title'],start:start};
+       											$("#calendar").fullCalendar("renderEvent",event,true);
+											});
+				  						},
+				  						error:function(){
+				  							alert("Failed");
+				  						}
+									});
+								}
+							},
+							cancelValue:"return",
+							cancel:function(){
+								$("#ui-datepicker-div").remove();
+							}
+						}).showModal();
+					}
+				},
+
+				button3:{
+					text:"count",
+					click:function(){
+						$.ajax({
+							url:'{{url_for('todo.count')}}',
+							type:'POST',
+				  			success:function(data){
+				  				alert("Total number of schedules: "+data);
+				  			},
+				  			error:function(){
+				  				alert("Failed");
+				  			}
+						});
+					}
+				},
+			},
+			header: {
+				left: 'prev next today',
+				center: 'title',
+				right: 'button1 button2 month listMonth button3'
+			},
+			firstDay: 1,
+			buttonText:{
+				today: "today",
+				month: "schedule",
+				week: "week",
+				day: "day",
+				listMonth:"list"
+			},
+			allDayDefault:false,
+			slotLabelFormat:"H",
+			allDaySlot: true,
+			allDayText: "all day",
+			timeFormat: "HH:mm",
+			views:{
+				month:{
+					titleFormat:"YYYY.M"
+				},
+				week:{
+					titleFormat:"YYYY.M.D",
+					columnFormat:"M.D dddd"
+				},
+				day:{
+					titleFormat:"YYYY.M.D dddd",
+					columnFormat:"M/D dddd"
+				}
+			},
+			events:function(date,allDay,jsEvent,view){
+    			$.ajax({
+     				url:'{{url_for('todo.initial')}}',
+     				type:'POST',
+     				success:function(data){
+     					$('#calendar').fullCalendar('removeEvents');
+     					$.each(data,function(i,item){    
+       						var start = $.fullCalendar.moment(item['sdate']+ "T" + item['stime']);
+       						var event = {id:item['id'],title:item['title'],start:start};
+       						$("#calendar").fullCalendar("renderEvent",event,true);
+						});
+    				},
+    			});
+   			},
+			dayClick: function(date,allDay,jsEvent,view){
+				var selDate = $.fullCalendar.formatDate(date,"YYYY-MM-DD");
+				var d = dialog({
+					title:"New schedule",
+					content:"<textarea rows=5 class='taxt' placeholder='content' id='eventall'></textarea><p>"+selDate+"</p>",
+					width:460,
+					button:[{
+						value:"complete",
+						callback:function(){
+							$(".datepicker").datepicker({
+								language:"zh-CN",
+								format:"yyyy-mm-dd",
+								todayHighlight:true,
+								autoclose:true,
+								weekStart:0
+							});
+							$(".timepicki").wickedpicker({
+								title:'',
+								showSeconds:true,
+								twentyFour:true
+							});
+							$("#end").click(function(){
+								if($("#end").prop("checked") == true){
+									$("#enddate").show();
+								}else{
+									$("#enddate").hide();
+								};
+							});
+							dialog({
+								title:"New schedule",
+								content:$("#dialog-form"),
+								okValue:"ok",
+								ok:function(){
+									var titledetail = $("#titledetail").val();
+									var startdate = $("#startdate").val();
+									var starttime = $("#starttime").val().split(" ").join("");
+									var enddate = $("#stopdate").val();
+									var endtime = $("#endtime").val().split(" ").join("");
+									if(titledetail){
+										$.ajax({
+											url:'{{url_for('todo.add')}}',
+					   						data:{id:$(this).attr("id"),title:titledetail,sdate:startdate,stime:starttime,edate:enddate,etime:endtime},
+					   						type:'POST',
+					   						dataType:'json',
+					  						success:function(data){
+				  								var start = $.fullCalendar.moment($("#startdate").val() + "T" + $("#starttime").val().split(" ").join(""));
+				  								var event = {id:$(this).attr("id"),title:titledetail,start:start};
+				  								$("#calendar").fullCalendar("renderEvent",event,true);
+					  						},
+					  						error:function(){
+					  							alert("Failed");
+					  						}
+
+										});
+									};
+								},
+								cancelValue:"close",
+								cancel:function(){}
+							}).showModal();
+						},
+					}],
+					okValue:"ok",
+					ok:function(){
+						var titleall = $("#eventall").val();
+						if(titleall){
+							$.ajax({
+								url:'{{url_for('todo.add_simple')}}',
+		   						data:{id:$(this).attr("id"),title:titleall, start:selDate},
+		   						type:'POST',
+		   						dataType:'json',
+		  						success:function(data){
+				  					var start = $.fullCalendar.moment(selDate);
+				  					var event = {id:$(this).attr("id"),title:titleall,start:start};
+				  					$("#calendar").fullCalendar("renderEvent",event,true);
+		  						},
+		  						error:function(){
+		  							alert("Failed");
+		  						}
+
+							});
+						};
+					},
+					cancelValue:"cancel",
+					cancel:function(){}
+				});
+				d.showModal();
+
+			},
+			eventClick:function(calEvent,jsEvent,view){
+				var editstarttime = $.fullCalendar.formatDate(calEvent.start,"YYYY-MM-DD HH:mm:ss");
+				$("#edittitle").html(calEvent.title);
+				var eventtitle = calEvent.title;
+				var eventid = calEvent.id;
+				if(calEvent.end){
+					var editendtime = $.fullCalendar.formatDate(calEvent.end,"YYYY-MM-DD HH:mm:ss");
+					$("#edittime").html(editstarttime+"  to  "+editendtime);
+				}else{
+					$("#edittime").html(editstarttime);
+				};
+				// var time = '19:00:00';
+				dialog({
+					title:"edit",
+					content:$("#edit"),
+					okValue:"edit",
+					ok:function(){
+						$(".datepicker").datepicker({
+							language:"zh-CN",
+							format:"yyyy-mm-dd",
+							todayHighlight:true,
+							autoclose:true,
+							weekStart:0
+						});
+						$(".timepicki").wickedpicker({
+							// now: time,
+							title:'',
+							showSeconds:true,
+							twentyFour:true
+						});
+						$("#end").click(function(){
+							if($("#end").prop("checked") == true){
+								$("#enddate").show();
+							}else{
+								$("#enddate").hide();
+							};
+						});
+						dialog({
+							title:"New schedule",
+							content:$("#dialog-form"),
+							okValue:"ok",
+							ok:function(){
+								var titledetail = $("#titledetail").val();
+								var startdate = $("#startdate").val();
+								var starttime = $("#starttime").val().split(" ").join("");
+								var enddate = $("#stopdate").val();
+								var endtime = $("#endtime").val().split(" ").join("");
+								if(titledetail){
+									$.ajax({
+										url:'{{url_for('todo.add')}}',
+				   						data:{id:$(this).attr("id"),title:titledetail,sdate:startdate,stime:starttime,edate:enddate,etime:endtime},
+				   						type:'POST',
+				   						dataType:'json',
+				  						success:function(data){
+				  							var start = $.fullCalendar.moment($("#startdate").val() + "T" + $("#starttime").val().split(" ").join(""));
+				  							var event = {id:$(this).attr("id"),title:titledetail,start:start};
+				  							$("#calendar").fullCalendar("renderEvent",event,true);
+				  							$.ajax({
+												url:'{{url_for('todo.delete')}}',
+				   								data:{id:calEvent.id},
+				   								type:'POST',
+				   								dataType:'json',
+				  								success:function(data){
+				  									$("#calendar").fullCalendar("removeEvents",function(event){
+														if(event.id==eventid){
+															return true;
+														}else{
+															return false;
+														}
+													});
+				  								},
+											});
+				  						},
+				  						error:function(){
+				  							alert("Failed");
+				  						}
+									});
+								};
+							},
+							cancelValue:"close",
+							cancel:function(){
+								//$("#ui-datepicker-div").remove();
+							}
+						}).showModal();
+					},
+					button:[{
+						value:"delete",
+						callback:function(){
+							$.ajax({
+								url:'{{url_for('todo.delete')}}',
+				   				data:{id:calEvent.id},
+				   				type:'POST',
+				   				dataType:'json',
+				  				success:function(data){
+				  					$("#calendar").fullCalendar("removeEvents",function(event){
+										if(event.id==eventid){
+											return true;
+										}else{
+											return false;
+										}
+									});
+				  				},
+				  				error:function(){
+				  					alert("Failed");
+				  				}
+							});
+						}
+					}],
+					cancelValue:"cancel",
+					cancel:function(){}
+				}).showModal();
+			}
+		});
+		$('#calendar').find('.fc-prev-button,.fc-next-button').click(function(){
+			   	$.ajax({
+     				url:'{{url_for('todo.initial')}}',
+     				type:'POST',
+     				success:function(data){
+     					$('#calendar').fullCalendar('removeEvents');
+     					$.each(data,function(i,item){    
+       						var start = $.fullCalendar.moment(item['sdate']+ "T" + item['stime']);
+       						var event = {id:item['id'],title:item['title'],start:start};
+       						$("#calendar").fullCalendar("renderEvent",event,true);
+						});
+    				},
+    			});
+		});
+	});
+</script>
+</head>
+<body>
+	<div class="wrapper">
+	<div class="contnt-section">
+		<div id="calendar"></div>
+	</div>
+	</div>
+	<div id="edit" style="display: none">
+		<p id="edittitle"></p>
+		<p id="edittime"></p>
+	</div>
+	<div id="dialog-form" style="display:none">
+		<form class="form-inline">
+			<p>
+				<label>content：</label>
+				<textarea class="textarea" rows="4" placeholder="content" id="titledetail"></textarea>
+				<span>（required）</span>
+			</p>
+			<p>
+				<label>start time：</label>
+				<input type="text" class="time datepicker" id="startdate">
+				<input type="text" class="time timepicki" id="starttime">
+			</p>
+			<p style="display:none" id="enddate">
+				<label>end time：</label>
+				<input type="text" class="time datepicker" id="stopdate">
+				<input type="text" class="time timepicki" id="endtime">
+			</p>
+			<p class="checkbox check">
+				<label class="checkbox-inline"><input type="checkbox" id="end">end time</label>
+			</p>
+			<p></p>
+		</form>
+	</div>
+	<div id="search" style="display:none">
+		<form class="form-inline">
+			<p>
+				<label>content：</label>
+				<textarea class="textarea" rows="1" placeholder="content" id="search_content"></textarea>
+				<span>（required）</span>
+			</p>
+		</form>
+	</div>
+</body>
+</html>
